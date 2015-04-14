@@ -1,45 +1,70 @@
-(function($) {
+;(function($, undefined) {
   function escapeRegExp(string){
     return string.replace(/([.*+?^${}()|\[\]\/\\])/g, "\\$1");
   }
 
-  $.fn.filterThis = function() {
-    console.log(this);
-    return this.each(function() {
-      var $this = $(this);
-      var $target = $($this.data('filter-target'));
-      var hideTarget = $this.data('filter-hide') || $target;
-      var regEx,
+  /* PLUGIN CLASS AND FUNCTIONS */
+  var filterThis = function( elem, options ) {
+    this.elem = elem;
+    this.$elem = $(elem);
+    this.options = options;
+    this.html5Data = this.$elem.data("filter-options");
+  }
+
+  filterThis.prototype = { 
+    defaults: {
+      shouldHighlight: true,
+      highlightColor: "yellow",
+      filterTarget: "",
+      filterHide: "",
+      shouldHide: true,
+      flags: "i"
+    },
+
+    init: function() {
+      var instance = this;
+      instance.config = $.extend({}, instance.defaults, instance.options, instance.html5Data);
+      var $target = $(instance.config.filterTarget),
+          regEx,
           oldString,
           newString,
-          input;
-
-      $this.on('input', function(event) {
-        input = event.currentTarget.value;  
+          inputText;
+      instance.$elem.on('input', function(event) {
+        inputText = event.currentTarget.value;  
         // if there is input search for and highlight string
-        regEx = new RegExp(escapeRegExp(input), 'i');
+        regEx = new RegExp(escapeRegExp(inputText), 'i');
         $target.each(function(iteration) {
-          oldString = $.trim($(this).text());
-          if (input != '') {
-            newString = oldString.replace(regEx, "<span class='highlight'>"+'$&'+"</span>");
-            $(this).html(newString);
+          $element = $(this);
+          oldString = $.trim($element.text());
+          if (inputText != '') {
+            newString = oldString.replace(regEx, "<span class='filter-this-highlighter'>"+'$&'+"</span>");
+            $element.html(newString);
             if (oldString === newString) {
               // case when no match is found on target
-              $(this).closest(hideTarget).hide();
+              $element.closest(instance.config.filterHide).hide();
             }
             else {
               // when match if found make sure it is visible
-              $(this).closest(hideTarget).show();
+              $element.closest(instance.config.filterHide).show();
+              if (instance.config.shouldHighlight === true) {
+                $element.children(".filter-this-highlighter").css("background", instance.config.highlightColor);
+              }
             }
           }
           else {
-            // nothing searched: replace to clear highlight then show element
-            newString = oldString.replace(regEx, '$&');
-            $(this).html(newString);
-            $(this).closest(hideTarget).show();
+            // nothing searched: replace to clear highlight and show element
+            $element.html(oldString);
+            $element.closest(instance.config.filterHide).show();
           }
         });
       });
+      return instance;
+    }
+  }
+
+  $.fn.filterThis = function(options) {
+    return this.each(function() {
+      new filterThis(this, options).init();
     });
   }
 }(jQuery));
